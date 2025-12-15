@@ -50,7 +50,7 @@ export const userContextCommand: UserContextMenuCommand = {
 // Message context menu: Right-click message → Apps → PK
 export const messageContextCommand: MessageContextMenuCommand = {
     data: new ContextMenuCommandBuilder()
-        .setName('PKS')
+        .setName('PK')
         .setType(ApplicationCommandType.Message),
 
     async execute(interaction: MessageContextMenuCommandInteraction) {
