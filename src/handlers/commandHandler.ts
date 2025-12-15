@@ -19,9 +19,19 @@ export async function loadCommands(): Promise<Collection<string, Command>> {
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const commandModule = await import(filePath);
-    const command = commandModule.command as Command;
     
-    if ('data' in command && 'execute' in command) {
+    // Support both single command export and multiple commands array export
+    if (commandModule.commands && Array.isArray(commandModule.commands)) {
+      // Multiple commands in one file
+      for (const command of commandModule.commands) {
+        if ('data' in command && 'execute' in command) {
+          commands.set(command.data.name, command);
+          console.log(`Loaded command: ${command.data.name}`);
+        }
+      }
+    } else if (commandModule.command && 'data' in commandModule.command && 'execute' in commandModule.command) {
+      // Single command export (backward compatibility)
+      const command = commandModule.command as Command;
       commands.set(command.data.name, command);
       console.log(`Loaded command: ${command.data.name}`);
     } else {
