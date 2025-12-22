@@ -14,11 +14,17 @@ if (!token || !clientId) {
     process.exit(1);
 }
 
+interface SubcommandRecord {
+    id: string;
+    name: string;
+}
+
 interface CommandRecord {
     id: string;
     name: string;
     version: string;
     deployed_at: string;
+    subcommands?: SubcommandRecord[];
 }
 
 const COMMAND_IDS_FILE = path.join(__dirname, '../command-ids.json');
@@ -29,7 +35,11 @@ const COMMAND_IDS_FILE = path.join(__dirname, '../command-ids.json');
 function loadCommandIds(): Map<string, CommandRecord> {
     try {
         if (fs.existsSync(COMMAND_IDS_FILE)) {
-            const data = JSON.parse(fs.readFileSync(COMMAND_IDS_FILE, 'utf-8'));
+            const fileContent = fs.readFileSync(COMMAND_IDS_FILE, 'utf-8').trim();
+            if (fileContent === '') {
+                return new Map(); // Empty file is fine
+            }
+            const data = JSON.parse(fileContent);
             return new Map(Object.entries(data));
         }
     } catch (error) {
@@ -121,12 +131,29 @@ async function deployCommands() {
             const commandJson = commandData.find(c => c.name === cmd.name);
             const version = commandJson ? getCommandVersion(commandJson) : 'unknown';
             
+            // Extract subcommand IDs if they exist
+            const subcommands: SubcommandRecord[] = [];
+            if (cmd.options && Array.isArray(cmd.options)) {
+                for (const option of cmd.options) {
+                    if (option.type === 1) { // Type 1 = SUB_COMMAND
+                        subcommands.push({
+                            id: option.id || 'unknown',
+                            name: option.name
+                        });
+                    }
+                }
+            }
+            
             const record: CommandRecord = {
                 id: cmd.id,
                 name: cmd.name,
                 version: version,
                 deployed_at: new Date().toISOString()
             };
+
+            if (subcommands.length > 0) {
+                record.subcommands = subcommands;
+            }
 
             newCommandIds.set(cmd.name, record);
 
@@ -140,6 +167,20 @@ async function deployCommands() {
                 console.log(`📝 UPDATED: /${cmd.name.padEnd(20)} ID: ${cmd.id} (version changed)`);
             } else {
                 console.log(`✓ /${cmd.name.padEnd(20)} ID: ${cmd.id}`);
+            }
+
+            // Display subcommands if they exist
+            if (subcommands.length > 0) {
+                for (const subCmd of subcommands) {
+                    const oldSubCmd = oldRecord?.subcommands?.find(s => s.name === subCmd.name);
+                    if (!oldSubCmd) {
+                        console.log(`   ✨ NEW: ${subCmd.name.padEnd(16)} ID: ${subCmd.id}`);
+                    } else if (oldSubCmd.id !== subCmd.id) {
+                        console.log(`   🔄 CHANGED: ${subCmd.name.padEnd(16)} ID: ${subCmd.id} (was: ${oldSubCmd.id})`);
+                    } else {
+                        console.log(`   ✓ ${subCmd.name.padEnd(16)} ID: ${subCmd.id}`);
+                    }
+                }
             }
         }
 
