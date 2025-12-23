@@ -109,7 +109,7 @@ class HytaleAPIClient {
             );
 
             const location = initResponse.headers.location;
-            console.log('[Hytale] Redirect location:', location);
+            console.log('[Hytale] Init redirect location:', location);
             
             const flowMatch = location?.match(/flow=([a-f0-9-]+)/);
             if (!flowMatch) {
@@ -118,6 +118,22 @@ class HytaleAPIClient {
             }
             const flowId = flowMatch[1];
             console.log('[Hytale] Flow ID:', flowId);
+
+            // Follow the redirect to get the login page and more cookies
+            console.log('[Hytale] Following redirect to login page...');
+            const loginPageResponse = await axios.get(location, {
+                headers: {
+                    ...headers,
+                    'Cookie': this.cookieJar.getCookieString()
+                },
+                maxRedirects: 0,
+                validateStatus: () => true // Accept any status
+            });
+
+            // Store any additional cookies from the login page
+            const loginPageCookies = loginPageResponse.headers['set-cookie'] || [];
+            this.cookieJar.parseCookies(loginPageCookies);
+            console.log('[Hytale] Stored', loginPageCookies.length, 'additional cookies from login page');
 
             // Store cookies from init
             const setCookieHeaders = initResponse.headers['set-cookie'] || [];
@@ -156,8 +172,8 @@ class HytaleAPIClient {
                         ...headers,
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Cookie': this.cookieJar.getCookieString(),
-                        'Origin': 'https://backend.accounts.hytale.com',
-                        'Referer': `https://backend.accounts.hytale.com/self-service/login/browser?flow=${flowId}`
+                        'Origin': 'https://accounts.hytale.com',
+                        'Referer': `https://accounts.hytale.com/login?flow=${flowId}`
                     },
                     maxRedirects: 0,
                     validateStatus: (status) => status >= 200 && status < 400
@@ -183,6 +199,32 @@ class HytaleAPIClient {
             
             if (!redirectLocation) {
                 throw new Error('Login failed - no redirect location');
+            }
+
+            // Check if we got an error redirect
+            if (redirectLocation.includes('/error')) {
+                console.error('[Hytale] Login failed - redirected to error page');
+                
+                // Fetch the error page to see what went wrong
+                try {
+                    const errorResponse = await axios.get(redirectLocation, {
+                        headers: { 
+                            ...headers,
+                            'Cookie': this.cookieJar.getCookieString()
+                        }
+                    });
+                    
+                    // Try to extract error message from the HTML
+                    const errorHtml = errorResponse.data;
+                    const errorMatch = errorHtml.match(/<div[^>]*class="[^"]*error[^"]*"[^>]*>(.*?)<\/div>/is);
+                    if (errorMatch) {
+                        console.error('[Hytale] Error message:', errorMatch[1].replace(/<[^>]*>/g, '').trim());
+                    }
+                } catch (e) {
+                    console.error('[Hytale] Could not fetch error page details');
+                }
+                
+                throw new Error('Login failed - check your HYTALE_EMAIL and HYTALE_PASSWORD in .env file. The credentials may be incorrect.');
             }
 
             if (!redirectLocation.includes('/settings')) {
