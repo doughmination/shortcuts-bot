@@ -1,7 +1,8 @@
 import {
   SlashCommandSubcommandBuilder,
   ChatInputCommandInteraction,
-  EmbedBuilder
+  EmbedBuilder,
+  MessageFlags
 } from 'discord.js';
 import axios from 'axios';
 
@@ -16,7 +17,7 @@ const data = new SlashCommandSubcommandBuilder()
   );
 
 async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply();
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const username = interaction.options.getString('username', true);
 
