@@ -3,7 +3,7 @@ import {
     SlashCommandSubcommandBuilder
 } from 'discord.js';
 
-const CHOMP = 'https://tenor.com/view/cat-stare-catstare-cat-stare-sus-catglare-cat-glare-gif-14942558849944709546';
+const SIDEEYE = 'https://tenor.com/view/cat-stare-catstare-cat-stare-sus-catglare-cat-glare-gif-14942558849944709546';
 
 export default {
     data: new SlashCommandSubcommandBuilder()
@@ -20,9 +20,9 @@ export default {
         const targetUser = interaction.options.getUser('user');
 
         if (targetUser) {
-            await interaction.reply(`${targetUser}[.](${CHOMP})`);
+            await interaction.reply(`${targetUser}[.](${SIDEEYE})`);
         } else {
-            await interaction.reply(CHOMP);
+            await interaction.reply(SIDEEYE);
         }
     }
 };
