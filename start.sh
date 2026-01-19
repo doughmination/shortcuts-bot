@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "Deploying commands to Discord..."
-node dist/deploy-commands.js
+dotenvx run -- node dist/deploy-commands.js
 
 echo "Starting bot..."
-npm start
+dotenvx run -- npm start
