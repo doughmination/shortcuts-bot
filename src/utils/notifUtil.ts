@@ -8,7 +8,8 @@ import { Client, EmbedBuilder } from 'discord.js';
 /** User IDs to notify about front changes */
 const NOTIFY_USER_IDS = [
     '652597508027187240', // @transbian
-    '1025770042245251122', // @estrogenhrt
+    '1125844710511104030', // @doughmination.systems
+    '1460533537789710413',
 ];
 
 /**
